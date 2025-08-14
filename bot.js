@@ -48,7 +48,7 @@ cleanBot.deleteWebHook().then(() => {
       ]
     };
     
-    // Detailed inventory items by category
+    // Detailed inventory items by category - COMPLETE LIST
     const inventoryItems = {
       supplies: [
         '🧻 Toilet Paper', '🧼 Soap', '🧴 Shampoo', '🧴 Shower Gel', 
@@ -60,6 +60,31 @@ cleanBot.deleteWebHook().then(() => {
         '🔧 Screwdriver Set', '🪛 Screws Assorted', '🔩 Bolts & Nuts', '⚡ Extension Cords', 
         '🚿 Shower Head', '🚿 Plumbing Washers', '🎨 Touch-up Paint', '🪚 Wood Screws',
         '🔨 Hammer', '📏 Measuring Tape', '🔧 Wrench Set', '⚡ Light Switch'
+      ],
+      kitchen: [
+        '🥄 Draining Rack', '🍲 Washing Up Bowl', '🥗 Colander', '🥗 Salad Bowl', 
+        '🧀 Cheese Grater', '🥛 Glass Measurer', '🔪 Chopping Board', '🍳 Pan Small', 
+        '🍳 Pan Medium', '🍳 Pan Large', '🍳 Frying Pan', '🫖 Kettle', 
+        '🍽️ Dinner Plates', '🍽️ Side Plates', '🥣 Cereal Bowls', '☕ Mugs', 
+        '🍷 Wine Glass', '🥤 Tumblers', '🍴 Cutlery Tray', '🔪 Knives', 
+        '🍴 Forks', '🥄 Spoons', '🥄 Tea Spoons', '🥄 Serving Spoons', 
+        '🥄 Ladle', '🍳 Spatula', '🍷 Corkscrew', '🍞 Bread Knife', 
+        '🥕 Veg Knife', '🥔 Potato Peeler', '🥫 Tin Opener'
+      ],
+      cleaning_supplies: [
+        '🗑️ Bin with Lid', '🪣 Bucket and Strainer', '🧽 Mop', '🧹 Broom', 
+        '🧹 Dustpan/Brush', '🚪 Indoor Mat'
+      ],
+      bedding: [
+        '💤 Pillow', '🛏️ Double Duvets', '🛏️ Single Duvets', 
+        '🛏️ Double Mattress Cover', '🛏️ Single Mattress Cover'
+      ],
+      outdoor: [
+        '🪑 Outside Table', '🪑 Outside Chairs', '👕 Clothes Rack', '🔥 BBQ', 
+        '⛽ BBQ Gas', '🚬 Ashtray', '🏠 Outdoor Mat'
+      ],
+      toilet: [
+        '🧽 Toilet Brush'
       ]
     };
     
@@ -557,6 +582,11 @@ cleanBot.deleteWebHook().then(() => {
               const keyboard = [
                 [{text: '🧻 Supplies'}],
                 [{text: '🔧 Maintenance Materials'}],
+                [{text: '🍽️ Kitchen Items'}],
+                [{text: '🧹 Cleaning Supplies'}],
+                [{text: '🛏️ Bedding'}],
+                [{text: '🏠 Outdoor'}],
+                [{text: '🚽 Toilet'}],
                 [{text: '🔙 Back'}]
               ];
               
@@ -890,6 +920,11 @@ cleanBot.deleteWebHook().then(() => {
               const keyboard = [
                 [{text: '🧻 Supplies'}],
                 [{text: '🔧 Maintenance Materials'}],
+                [{text: '🍽️ Kitchen Items'}],
+                [{text: '🧹 Cleaning Supplies'}],
+                [{text: '🛏️ Bedding'}],
+                [{text: '🏠 Outdoor'}],
+                [{text: '🚽 Toilet'}],
                 [{text: '🔙 Back'}]
               ];
               
