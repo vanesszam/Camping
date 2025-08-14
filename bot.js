@@ -19,6 +19,35 @@ cleanBot.deleteWebHook().then(() => {
     const authenticatedUsers = {};
     const colors = ['🔵 Blue', '🤎 Brown', '🔘 Grey', '🟠 Orange', '🟡 Yellow'];
     
+    // Detailed cleaning items by category
+    const cleaningItems = {
+      kitchen: [
+        '🥄 Draining Rack', '🍲 Washing Up Bowl', '🥗 Colander', '🥗 Salad Bowl', 
+        '🧀 Cheese Grater', '🥛 Glass Measurer', '🔪 Chopping Board', '🍳 Pan Small', 
+        '🍳 Pan Medium', '🍳 Pan Large', '🍳 Frying Pan', '🫖 Kettle', 
+        '🍽️ Dinner Plates', '🍽️ Side Plates', '🥣 Cereal Bowls', '☕ Mugs', 
+        '🍷 Wine Glass', '🥤 Tumblers', '🍴 Cutlery Tray', '🔪 Knives', 
+        '🍴 Forks', '🥄 Spoons', '🥄 Tea Spoons', '🥄 Serving Spoons', 
+        '🥄 Ladle', '🍳 Spatula', '🍷 Corkscrew', '🍞 Bread Knife', 
+        '🥕 Veg Knife', '🥔 Potato Peeler', '🥫 Tin Opener'
+      ],
+      cleaning: [
+        '🗑️ Bin with Lid', '🪣 Bucket and Strainer', '🧽 Mop', '🧹 Broom', 
+        '🧹 Dustpan/Brush', '🚪 Indoor Mat'
+      ],
+      bedding: [
+        '💤 Pillow', '🛏️ Double Duvets', '🛏️ Single Duvets', 
+        '🛏️ Double Mattress Cover', '🛏️ Single Mattress Cover'
+      ],
+      outdoor: [
+        '🪑 Outside Table', '🪑 Outside Chairs', '👕 Clothes Rack', '🔥 BBQ', 
+        '⛽ BBQ Gas', '🚬 Ashtray', '🏠 Outdoor Mat'
+      ],
+      toilet: [
+        '🧽 Toilet Brush'
+      ]
+    };
+    
     async function sendToGoogleSheets(data) {
       try {
         const response = await fetch(GOOGLE_SCRIPT_URL, {
@@ -175,6 +204,7 @@ cleanBot.deleteWebHook().then(() => {
             const number = parseInt(text);
             if (number && number > 0) {
               session.bungalow = `${session.selectedColor} ${number}`;
+              session.items = []; // Initialize items array
               
               const keyboard = [
                 [{text: '🏠 Bungalow Ready'}],
@@ -239,12 +269,255 @@ cleanBot.deleteWebHook().then(() => {
               delete userSessions[chatId];
             }
             else if (text === '📦 Missing Items') {
-              bot.sendMessage(chatId, `📦 *Missing Items*\n\nDetailed missing items functionality coming soon...\n\n/menu to return`, {
+              session.step = 'cleaning_category';
+              
+              const keyboard = [
+                [{text: '🍽️ Kitchen'}],
+                [{text: '🏠 Outdoor'}],
+                [{text: '🧹 Cleaning'}],
+                [{text: '🛏️ Bedding'}],
+                [{text: '🚽 Toilet'}],
+                [{text: '🔙 Back'}]
+              ];
+              
+              bot.sendMessage(chatId, '📦 Choose category:', {
+                reply_markup: {
+                  keyboard: keyboard,
+                  one_time_keyboard: true,
+                  resize_keyboard: true
+                }
+              });
+            }
+          }
+          
+          // NEW: Category selection
+          else if (session.step === 'cleaning_category') {
+            if (text === '🔙 Back') {
+              session.step = 'cleaning_action';
+              
+              const keyboard = [
+                [{text: '🏠 Bungalow Ready'}],
+                [{text: '🔧 Maintenance Required'}],
+                [{text: '📦 Missing Items'}],
+                [{text: '🔙 Back to Menu'}]
+              ];
+              
+              bot.sendMessage(chatId, `✅ Bungalow: ${session.bungalow}\n\n🎯 Choose action:`, {
+                reply_markup: {
+                  keyboard: keyboard,
+                  one_time_keyboard: true,
+                  resize_keyboard: true
+                }
+              });
+              return;
+            }
+            
+            let category = '';
+            if (text === '🍽️ Kitchen') category = 'kitchen';
+            else if (text === '🏠 Outdoor') category = 'outdoor';
+            else if (text === '🧹 Cleaning') category = 'cleaning';
+            else if (text === '🛏️ Bedding') category = 'bedding';
+            else if (text === '🚽 Toilet') category = 'toilet';
+            
+            if (category) {
+              session.selectedCategory = category;
+              session.step = 'cleaning_item';
+              
+              const items = cleaningItems[category];
+              const keyboard = items.map(item => [{text: item}]);
+              keyboard.push([{text: '🔙 Back to categories'}]);
+              
+              bot.sendMessage(chatId, `Choose missing item (${text}):`, {
+                reply_markup: {
+                  keyboard: keyboard,
+                  one_time_keyboard: true,
+                  resize_keyboard: true
+                }
+              });
+            }
+          }
+          
+          // NEW: Item selection
+          else if (session.step === 'cleaning_item') {
+            if (text === '🔙 Back to categories') {
+              session.step = 'cleaning_category';
+              
+              const keyboard = [
+                [{text: '🍽️ Kitchen'}],
+                [{text: '🏠 Outdoor'}],
+                [{text: '🧹 Cleaning'}],
+                [{text: '🛏️ Bedding'}],
+                [{text: '🚽 Toilet'}],
+                [{text: '🔙 Back'}]
+              ];
+              
+              bot.sendMessage(chatId, '📦 Choose category:', {
+                reply_markup: {
+                  keyboard: keyboard,
+                  one_time_keyboard: true,
+                  resize_keyboard: true
+                }
+              });
+              return;
+            }
+            
+            session.selectedItem = text;
+            session.step = 'cleaning_quantity';
+            
+            bot.sendMessage(chatId, `📊 How many "${text}" are missing?\n\nEnter a number:`, {
+              reply_markup: {remove_keyboard: true}
+            });
+          }
+          
+          // NEW: Quantity input
+          else if (session.step === 'cleaning_quantity') {
+            const quantity = parseInt(text);
+            if (quantity && quantity > 0) {
+              session.selectedQuantity = quantity;
+              
+              // Add item to session
+              session.items.push({
+                item: session.selectedItem,
+                quantity: session.selectedQuantity,
+                category: session.selectedCategory,
+                notes: ''
+              });
+              
+              session.step = 'cleaning_continue';
+              
+              const summary = session.items.map((item, index) => 
+                `${index + 1}. ${item.item} x${item.quantity}`
+              ).join('\n');
+              
+              bot.sendMessage(chatId, `✅ Item added!\n\n📋 *Summary ${session.bungalow}:*\n${summary}\n\nWhat do you want to do?`, {
                 parse_mode: 'Markdown',
+                reply_markup: {
+                  keyboard: [
+                    [{text: '➕ Add Another Item'}],
+                    [{text: '📝 Add Note'}],
+                    [{text: '📤 Send Report'}],
+                    [{text: '🗑️ Cancel All'}]
+                  ],
+                  one_time_keyboard: true,
+                  resize_keyboard: true
+                }
+              });
+            } else {
+              bot.sendMessage(chatId, '❌ Enter a valid number (ex: 1, 2, 3...)');
+            }
+          }
+          
+          // NEW: Continue options
+          else if (session.step === 'cleaning_continue') {
+            if (text === '➕ Add Another Item') {
+              session.step = 'cleaning_category';
+              
+              const keyboard = [
+                [{text: '🍽️ Kitchen'}],
+                [{text: '🏠 Outdoor'}],
+                [{text: '🧹 Cleaning'}],
+                [{text: '🛏️ Bedding'}],
+                [{text: '🚽 Toilet'}],
+                [{text: '🔙 Back'}]
+              ];
+              
+              bot.sendMessage(chatId, '📦 Choose category for next item:', {
+                reply_markup: {
+                  keyboard: keyboard,
+                  one_time_keyboard: true,
+                  resize_keyboard: true
+                }
+              });
+            }
+            else if (text === '📝 Add Note') {
+              session.step = 'cleaning_notes';
+              
+              const keyboard = [
+                [{text: '❌ No Note'}],
+                [{text: '🏠 Bungalow Ready'}],
+                [{text: '🔧 For Maintenance'}]
+              ];
+              
+              // Remove "Bungalow Ready" option if no kitchen items
+              if (!session.items.some(item => item.category === 'kitchen')) {
+                keyboard.splice(1, 1);
+              }
+              
+              bot.sendMessage(chatId, '💡 Add a note?\n\nChoose or type your note:', {
+                reply_markup: {
+                  keyboard: keyboard,
+                  one_time_keyboard: true,
+                  resize_keyboard: true
+                }
+              });
+            }
+            else if (text === '📤 Send Report') {
+              let successCount = 0;
+              
+              for (const item of session.items) {
+                try {
+                  await sendToGoogleSheets({
+                    bungalow: session.bungalow,
+                    item: item.item,
+                    quantity: item.quantity,
+                    category: item.category,
+                    notes: item.notes,
+                    priority: 'normal',
+                    reportedBy: msg.from.first_name || 'User',
+                    section: 'cleaning'
+                  });
+                  successCount++;
+                } catch (error) {
+                  console.error('Send error:', error);
+                }
+              }
+              
+              const summary = session.items.map((item, index) => 
+                `${index + 1}. ${item.item} x${item.quantity}${item.notes ? ` (${item.notes})` : ''}`
+              ).join('\n');
+              
+              bot.sendMessage(chatId, `🎉 *Report sent successfully!*\n\n🏠 Bungalow: ${session.bungalow}\n📦 ${successCount} items reported:\n\n${summary}\n\n/menu to return`, {
+                parse_mode: 'Markdown',
+                reply_markup: {remove_keyboard: true}
+              });
+              
+              delete userSessions[chatId];
+            }
+            else if (text === '🗑️ Cancel All') {
+              bot.sendMessage(chatId, '❌ Report cancelled.\n\n/menu to return', {
                 reply_markup: {remove_keyboard: true}
               });
               delete userSessions[chatId];
             }
+          }
+          
+          // NEW: Notes handling
+          else if (session.step === 'cleaning_notes') {
+            const note = text === '❌ No Note' ? '' : text.replace(/🏠 |🔧 |❌ /, '');
+            
+            // Apply note to all items
+            session.items.forEach(item => {
+              item.notes = note;
+            });
+            
+            session.step = 'cleaning_continue';
+            
+            const summary = session.items.map((item, index) => 
+              `${index + 1}. ${item.item} x${item.quantity}${item.notes ? ` (${item.notes})` : ''}`
+            ).join('\n');
+            
+            bot.sendMessage(chatId, `✅ Note added!\n\n📋 *Final Summary ${session.bungalow}:*\n${summary}\n\nReady to send?`, {
+              parse_mode: 'Markdown',
+              reply_markup: {
+                keyboard: [
+                  [{text: '📤 Send Report'}],
+                  [{text: '➕ Add Another Item'}],
+                  [{text: '🗑️ Cancel All'}]
+                ],
+                one_time_keyboard: true,
+                resize_keyboard: true
+              }
+            });
           }
         }
         
