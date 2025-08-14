@@ -1,15 +1,14 @@
 {
-  "name": "camping-management-bot",
+  "name": "camping-bot",
   "version": "1.0.0",
   "main": "bot.js",
   "scripts": {
     "start": "node bot.js"
   },
   "dependencies": {
-    "node-telegram-bot-api": "^0.64.0",
-    "node-fetch": "^3.3.2"
+    "node-telegram-bot-api": "^0.64.0"
   },
   "engines": {
-    "node": ">=16.0.0"
+    "node": ">=18.0.0"
   }
 }
