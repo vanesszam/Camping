@@ -3,7 +3,7 @@ const TelegramBot = require('node-telegram-bot-api');
 
 console.log('🏕️ Test du bot...');
 
-const TOKEN = '8027810983:AAEPaJ5PY1Jw_8RKNPWHvwxOF9OW0hsAKaI';
+const TOKEN = '8029829192:AAG6R2M5-0x5cZ48t-1NSCOBUYzYdanIWPA';
 const bot = new TelegramBot(TOKEN, {polling: true});
 
 console.log('✅ Bot démarré');
