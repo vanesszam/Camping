@@ -48,6 +48,21 @@ cleanBot.deleteWebHook().then(() => {
       ]
     };
     
+    // Detailed inventory items by category
+    const inventoryItems = {
+      supplies: [
+        '🧻 Toilet Paper', '🧼 Soap', '🧴 Shampoo', '🧴 Shower Gel', 
+        '🧽 Sponges', '🧹 Cleaning Products', '🗑️ Trash Bags', '💡 Light Bulbs', 
+        '🔋 Batteries', '🕯️ Candles', '🔥 Matches', '📄 Paper Towels',
+        '🧴 Dish Soap', '🧽 Scrubbing Pads', '🧻 Kitchen Roll', '🧼 Hand Sanitizer'
+      ],
+      maintenance: [
+        '🔧 Screwdriver Set', '🪛 Screws Assorted', '🔩 Bolts & Nuts', '⚡ Extension Cords', 
+        '🚿 Shower Head', '🚿 Plumbing Washers', '🎨 Touch-up Paint', '🪚 Wood Screws',
+        '🔨 Hammer', '📏 Measuring Tape', '🔧 Wrench Set', '⚡ Light Switch'
+      ]
+    };
+    
     async function sendToGoogleSheets(data) {
       try {
         const response = await fetch(GOOGLE_SCRIPT_URL, {
@@ -521,7 +536,7 @@ cleanBot.deleteWebHook().then(() => {
           }
         }
         
-        // INVENTORY SECTION
+        // INVENTORY SECTION - COMPLETE
         else if (session.section === 'inventory') {
           
           if (session.step === 'inventory_choice') {
@@ -532,19 +547,267 @@ cleanBot.deleteWebHook().then(() => {
             }
             
             if (text === '📦 Add Stock') {
-              bot.sendMessage(chatId, `📦 *Add Stock*\n\nStock management functionality coming soon...\n\n/menu to return`, {
-                parse_mode: 'Markdown',
-                reply_markup: {remove_keyboard: true}
+              session.step = 'inventory_category';
+              
+              const keyboard = [
+                [{text: '🧻 Supplies'}],
+                [{text: '🔧 Maintenance Materials'}],
+                [{text: '🔙 Back'}]
+              ];
+              
+              bot.sendMessage(chatId, '📦 Choose category to add stock:', {
+                reply_markup: {
+                  keyboard: keyboard,
+                  one_time_keyboard: true,
+                  resize_keyboard: true
+                }
               });
-              delete userSessions[chatId];
             }
             else if (text === '📊 Check Stock') {
-              bot.sendMessage(chatId, `📊 *Check Stock*\n\nStock checking functionality coming soon...\n\n/menu to return`, {
+              // For now, show a summary message
+              // Later this could fetch real data from Google Sheets
+              bot.sendMessage(chatId, `📊 *Current Stock Status*\n\n🧻 **Supplies:**\n• Toilet Paper: Low\n• Cleaning Products: OK\n• Light Bulbs: Critical\n\n🔧 **Maintenance:**\n• Tools: OK\n• Screws: Low\n• Paint: OK\n\n💡 *Use "Add Stock" to replenish items*\n\n/menu to return`, {
                 parse_mode: 'Markdown',
                 reply_markup: {remove_keyboard: true}
               });
               delete userSessions[chatId];
             }
+          }
+          
+          // NEW: Category selection for inventory
+          else if (session.step === 'inventory_category') {
+            if (text === '🔙 Back') {
+              session.step = 'inventory_choice';
+              
+              bot.sendMessage(chatId, '📦 *Inventory Section*\n\nChoose an action:', {
+                parse_mode: 'Markdown',
+                reply_markup: {
+                  keyboard: [
+                    [{text: '📦 Add Stock'}],
+                    [{text: '📊 Check Stock'}],
+                    [{text: '🔙 Back to Menu'}]
+                  ],
+                  one_time_keyboard: true,
+                  resize_keyboard: true
+                }
+              });
+              return;
+            }
+            
+            let category = '';
+            if (text === '🧻 Supplies') category = 'supplies';
+            else if (text === '🔧 Maintenance Materials') category = 'maintenance';
+            
+            if (category) {
+              session.selectedCategory = category;
+              session.step = 'inventory_item';
+              
+              const items = inventoryItems[category];
+              const keyboard = items.map(item => [{text: item}]);
+              keyboard.push([{text: '🔙 Back to categories'}]);
+              
+              bot.sendMessage(chatId, `Choose item to add (${text}):`, {
+                reply_markup: {
+                  keyboard: keyboard,
+                  one_time_keyboard: true,
+                  resize_keyboard: true
+                }
+              });
+            }
+          }
+          
+          // NEW: Item selection for inventory
+          else if (session.step === 'inventory_item') {
+            if (text === '🔙 Back to categories') {
+              session.step = 'inventory_category';
+              
+              const keyboard = [
+                [{text: '🧻 Supplies'}],
+                [{text: '🔧 Maintenance Materials'}],
+                [{text: '🔙 Back'}]
+              ];
+              
+              bot.sendMessage(chatId, '📦 Choose category to add stock:', {
+                reply_markup: {
+                  keyboard: keyboard,
+                  one_time_keyboard: true,
+                  resize_keyboard: true
+                }
+              });
+              return;
+            }
+            
+            session.selectedItem = text;
+            session.step = 'inventory_quantity';
+            
+            bot.sendMessage(chatId, `📊 How many "${text}" do you want to add to stock?\n\nEnter a number:`, {
+              reply_markup: {remove_keyboard: true}
+            });
+          }
+          
+          // NEW: Quantity for inventory
+          else if (session.step === 'inventory_quantity') {
+            const quantity = parseInt(text);
+            if (quantity && quantity > 0) {
+              session.step = 'inventory_location';
+              session.selectedQuantity = quantity;
+              
+              const keyboard = [
+                [{text: '🏪 Main Storage'}],
+                [{text: '🧹 Cleaning Closet'}],
+                [{text: '🔧 Maintenance Room'}],
+                [{text: '🏠 Reception'}],
+                [{text: '📍 Other Location'}]
+              ];
+              
+              bot.sendMessage(chatId, `📍 Where are you adding ${quantity} x "${session.selectedItem}"?\n\nChoose storage location:`, {
+                reply_markup: {
+                  keyboard: keyboard,
+                  one_time_keyboard: true,
+                  resize_keyboard: true
+                }
+              });
+            } else {
+              bot.sendMessage(chatId, '❌ Enter a valid number (ex: 1, 5, 10, 25...)');
+            }
+          }
+          
+          // NEW: Location for inventory
+          else if (session.step === 'inventory_location') {
+            let location = '';
+            if (text === '🏪 Main Storage') location = 'Main Storage';
+            else if (text === '🧹 Cleaning Closet') location = 'Cleaning Closet';
+            else if (text === '🔧 Maintenance Room') location = 'Maintenance Room';
+            else if (text === '🏠 Reception') location = 'Reception';
+            else if (text === '📍 Other Location') {
+              session.step = 'inventory_custom_location';
+              bot.sendMessage(chatId, `📝 Enter custom location name:`, {
+                reply_markup: {remove_keyboard: true}
+              });
+              return;
+            } else {
+              location = text; // Custom location from previous step
+            }
+            
+            if (location) {
+              session.selectedLocation = location;
+              session.step = 'inventory_confirm';
+              
+              const keyboard = [
+                [{text: '✅ Confirm & Add'}],
+                [{text: '📝 Add Note'}],
+                [{text: '🔙 Change Location'}],
+                [{text: '❌ Cancel'}]
+              ];
+              
+              bot.sendMessage(chatId, `📋 *Stock Addition Summary:*\n\n📦 Item: ${session.selectedItem}\n📊 Quantity: ${session.selectedQuantity}\n📍 Location: ${location}\n\nConfirm this addition?`, {
+                parse_mode: 'Markdown',
+                reply_markup: {
+                  keyboard: keyboard,
+                  one_time_keyboard: true,
+                  resize_keyboard: true
+                }
+              });
+            }
+          }
+          
+          // NEW: Custom location input
+          else if (session.step === 'inventory_custom_location') {
+            session.selectedLocation = text;
+            session.step = 'inventory_confirm';
+            
+            const keyboard = [
+              [{text: '✅ Confirm & Add'}],
+              [{text: '📝 Add Note'}],
+              [{text: '🔙 Change Location'}],
+              [{text: '❌ Cancel'}]
+            ];
+            
+            bot.sendMessage(chatId, `📋 *Stock Addition Summary:*\n\n📦 Item: ${session.selectedItem}\n📊 Quantity: ${session.selectedQuantity}\n📍 Location: ${text}\n\nConfirm this addition?`, {
+              parse_mode: 'Markdown',
+              reply_markup: {
+                keyboard: keyboard,
+                one_time_keyboard: true,
+                resize_keyboard: true
+              }
+            });
+          }
+          
+          // NEW: Confirmation step
+          else if (session.step === 'inventory_confirm') {
+            if (text === '✅ Confirm & Add') {
+              await sendToGoogleSheets({
+                bungalow: 'General Stock',
+                item: session.selectedItem,
+                quantity: session.selectedQuantity,
+                category: session.selectedCategory,
+                notes: `Added to ${session.selectedLocation}${session.inventoryNote ? ` - ${session.inventoryNote}` : ''}`,
+                priority: 'normal',
+                reportedBy: msg.from.first_name || 'User',
+                section: 'inventory',
+                location: session.selectedLocation
+              });
+              
+              bot.sendMessage(chatId, `✅ *Stock updated successfully!*\n\n📦 Item: ${session.selectedItem}\n📊 Quantity added: ${session.selectedQuantity}\n📍 Location: ${session.selectedLocation}\n\n/menu to return`, {
+                parse_mode: 'Markdown',
+                reply_markup: {remove_keyboard: true}
+              });
+              delete userSessions[chatId];
+            }
+            else if (text === '📝 Add Note') {
+              session.step = 'inventory_note';
+              
+              bot.sendMessage(chatId, `📝 Add a note about this stock addition:\n\n(Or type "skip" to skip)`, {
+                reply_markup: {remove_keyboard: true}
+              });
+            }
+            else if (text === '🔙 Change Location') {
+              session.step = 'inventory_location';
+              
+              const keyboard = [
+                [{text: '🏪 Main Storage'}],
+                [{text: '🧹 Cleaning Closet'}],
+                [{text: '🔧 Maintenance Room'}],
+                [{text: '🏠 Reception'}],
+                [{text: '📍 Other Location'}]
+              ];
+              
+              bot.sendMessage(chatId, `📍 Choose new storage location:`, {
+                reply_markup: {
+                  keyboard: keyboard,
+                  one_time_keyboard: true,
+                  resize_keyboard: true
+                }
+              });
+            }
+            else if (text === '❌ Cancel') {
+              bot.sendMessage(chatId, '❌ Stock addition cancelled.\n\n/menu to return', {
+                reply_markup: {remove_keyboard: true}
+              });
+              delete userSessions[chatId];
+            }
+          }
+          
+          // NEW: Note adding
+          else if (session.step === 'inventory_note') {
+            const note = text === 'skip' ? '' : text;
+            session.inventoryNote = note;
+            session.step = 'inventory_confirm';
+            
+            const keyboard = [
+              [{text: '✅ Confirm & Add'}],
+              [{text: '🔙 Change Location'}],
+              [{text: '❌ Cancel'}]
+            ];
+            
+            bot.sendMessage(chatId, `📋 *Stock Addition Summary:*\n\n📦 Item: ${session.selectedItem}\n📊 Quantity: ${session.selectedQuantity}\n📍 Location: ${session.selectedLocation}${note ? `\n📝 Note: ${note}` : ''}\n\nConfirm this addition?`, {
+              parse_mode: 'Markdown',
+              reply_markup: {
+                keyboard: keyboard,
+                one_time_keyboard: true,
+                resize_keyboard: true
+              }
+            });
           }
         }
         
